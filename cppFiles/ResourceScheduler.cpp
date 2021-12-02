@@ -66,16 +66,16 @@ void ResourceScheduler::oneHostScheduler() {
         return;
     }
     //cout << "OK!";
+    double startTime = 0;
     for (int i = 0; i < numJob; i++) {
-        //cout << i;
-        int startTime = 0;
+        //cout << i
         vector<int> host;
         for(int j = 0; j < hostCore[0]; j++){
             host.push_back(j);
         }
         oneJobScheduler(i, hostCore[0], host, startTime);
         startTime = jobFinishTime[i];
-        cout << startTime << endl;
+        cout << "starttime: " << startTime << endl;
     }
 }
 
@@ -191,28 +191,31 @@ double ResourceScheduler::g(int e) {
 void ResourceScheduler::oneJobScheduler(int job, int hostNum, vector<int> hostID, double startTime) {
     double speed = Sc[job] * g(hostNum);
     set<pair<int, int>> allocatedJobCore;
-    sort(dataSize[job].begin(), dataSize[job].end());
+    sort(dataSize[job].begin(), dataSize[job].end(), cmp);
     vector<double> hostFinishTime;
-    hostFinishTime.resize(jobBlock[job]);
+    hostFinishTime.resize(hostNum, 0);
     int hid = 0;
     for (int j = 0; j < jobBlock[job]; j++) {
-        int cid = distance(hostFinishTime.begin(), min_element(hostFinishTime.begin(), hostFinishTime.end()));
+        int unreal_cid = distance(hostFinishTime.begin(), min_element(hostFinishTime.begin(), hostFinishTime.end()));
         //int cid = 0;
-        cid = hostID[cid];
+        //cout  << "cid:" << unreal_cid << endl;
+        int cid = hostID[unreal_cid];
         allocatedJobCore.insert({ hid,cid });
         runLoc[job][j] = make_tuple(hid, cid);
         double dataTime = dataSize[job][j] / speed;
-        double startTime = startTime + hostFinishTime[j];
-        double endTime = startTime + dataTime;
+        double start_Time = startTime + hostFinishTime[unreal_cid];
+        //cout << "stlast:" << startTime;
+        double endTime = start_Time + dataTime;
         hostCoreTask[hid][cid].resize(coreNumTask[hid][cid] + 1);
-        hostCoreTask[hid][cid][coreNumTask[hid][cid]] = make_tuple(job, j, startTime, endTime);
-        cout << job << j << startTime << endTime;
+        hostCoreTask[hid][cid][coreNumTask[hid][cid]] = make_tuple(job, j, start_Time, endTime);
+        cout << job << " " << j << " " << start_Time << " " << endTime << endl;
         hostCoreFinishTime[hid][cid] = endTime;
-        hostFinishTime[j] += dataTime;
+        hostFinishTime[unreal_cid] += dataTime;
         coreNumTask[hid][cid]++;
     }
     jobCore[job] = allocatedJobCore.size();
-    jobFinishTime[job] = *max_element(hostFinishTime.begin(), hostFinishTime.end());
+    jobFinishTime[job] = startTime + *max_element(hostFinishTime.begin(), hostFinishTime.end());
+    cout << job << ":" << jobFinishTime[job] << endl;
 }
 
-bool cmp(double i, double j) {return i > j;}
+bool ResourceScheduler::cmp(double i, double j) { return i > j; }

@@ -39,4 +39,5 @@ public:
 	void visualization(float max); // An optional fuction.
 	double g(int);
 	void oneJobScheduler(int, int, vector<int>, double); // Job, Cores, CoreAddress, StartTime
+	static bool cmp(double, double);
 };
