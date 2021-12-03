@@ -219,3 +219,18 @@ void ResourceScheduler::oneJobScheduler(int job, int hostNum, vector<int> hostID
 }
 
 bool ResourceScheduler::cmp(double i, double j) { return i > j; }
+
+double ResourceScheduler::oneJobTimeCount(int job, int hostNum) {
+    double speed = Sc[job] * g(hostNum);
+    set<pair<int, int>> allocatedJobCore;
+    sort(dataSize[job].begin(), dataSize[job].end(), cmp);
+    vector<double> hostFinishTime;
+    hostFinishTime.resize(hostNum, 0);
+    int hid = 0;
+    for (int j = 0; j < jobBlock[job]; j++) {
+        int unreal_cid = distance(hostFinishTime.begin(), min_element(hostFinishTime.begin(), hostFinishTime.end()));
+        double dataTime = dataSize[job][j] / speed;
+        hostFinishTime[unreal_cid] += dataTime;
+    }
+    return *max_element(hostFinishTime.begin(), hostFinishTime.end());
+}

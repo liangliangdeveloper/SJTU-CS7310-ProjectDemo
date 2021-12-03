@@ -40,4 +40,5 @@ public:
 	double g(int);
 	void oneJobScheduler(int, int, vector<int>, double); // Job, Cores, CoreAddress, StartTime
 	static bool cmp(double, double);
+	double oneJobTimeCount(int, int);
 };
