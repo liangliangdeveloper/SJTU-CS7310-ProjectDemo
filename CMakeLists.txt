@@ -7,6 +7,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ./cppFiles/) # 可执行文件的输出目录
 aux_source_directory(./cppFiles/ cpp_LIST)
 aux_source_directory(./hFiles/ h_LIST)
 add_executable(run ${h_LIST} ${cpp_LIST})
-find_package(OpenCV REQUIRED)
-target_link_libraries(run ${OpenCV_LIBS})
+#find_package(OpenCV REQUIRED)
+#target_link_libraries(run ${OpenCV_LIBS})
 

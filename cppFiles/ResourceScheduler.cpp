@@ -1,10 +1,11 @@
 #include "../hFiles/ResourceScheduler.h"
-#include<opencv2/opencv.hpp>
+// #include<opencv2/opencv.hpp>
 
 using namespace std;
-using namespace cv;
+//using namespace cv;
 
-ResourceScheduler::ResourceScheduler(int tasktype,int caseID) {
+
+ResourceScheduler::ResourceScheduler(int tasktype, int caseID) {
 	taskType = tasktype;
 	string filePath = "../input/task" + to_string(taskType) + "_case"+to_string(caseID)+".txt";
 	freopen(filePath.c_str(), "r", stdin);
@@ -40,6 +41,17 @@ ResourceScheduler::ResourceScheduler(int tasktype,int caseID) {
 		}
 	}
 	jobFinishTime.resize(numJob);
+
+    oneHostJobCostTable.resize(numJob);
+    for (int i = 0; i < numJob; i++) {
+        oneHostJobCostTable[i].resize(20);
+    }
+
+    oneHostLocalOpt.resize(numJob);
+    for (int i = 0; i < numJob; i++) {
+        oneHostLocalOpt[i].resize(20);
+    }
+
 	jobCore.resize(numJob);
 	runLoc.resize(numJob);
 	for (int i = 0; i < numJob; i++)
@@ -60,6 +72,32 @@ ResourceScheduler::ResourceScheduler(int tasktype,int caseID) {
 
 }
 
+
+void ResourceScheduler::getOneHostJobCostTable() {
+    if (numHost != 1) {
+        cout << "This function only can use in one host!";
+        return;
+    }
+    for (int i = 0; i < numJob; i++) {
+        // Enumerate the number of core that one job can use
+        for (int j = 1; j <= hostCore[0]; j++) {
+            vector<int> host;
+            for (int k = 0; k < j; k++) {
+                host.push_back(k);
+            }
+            cout << "*****************" << endl;
+            oneJobScheduler(i, j, host, 0);
+            cout << "Job: " << i << " Number of Cores: " << j << " jobFinishTime:" << jobFinishTime[i] << endl;
+//            cout << oneHostJobCostTable[i][j] << endl;
+//            cout << jobFinishTime[i] << endl;
+            oneHostJobCostTable[i][j] = jobFinishTime[i];
+            cout << oneHostJobCostTable[i][j] << endl;
+        }
+
+    }
+}
+
+
 void ResourceScheduler::oneHostScheduler() {
     if(numHost != 1) {
         cout << "This function only can use in one host!";
@@ -78,6 +116,7 @@ void ResourceScheduler::oneHostScheduler() {
         cout << "starttime: " << startTime << endl;
     }
 }
+
 
 void ResourceScheduler::schedule() {
 
@@ -153,36 +192,36 @@ float ResourceScheduler::outputSolutionFromCore() {
 	return maxHostTime;
 }
 
-void ResourceScheduler::visualization(float max) {
-    int maxTime = max;
-    int height = 2000, length = 4000;
-    int bound = 100;
-    Mat picture(2000, 4000, CV_8UC3, Scalar(255, 255, 255,0.5));
-//    imshow("Drawing Function", picture);
-//    waitKey(-1);
-    int allCore = accumulate(hostCore.begin(), hostCore.end(), 0);
-    int coreHeight = (height - 2 * bound) / allCore;
-    int beforeCore = 0;
-	for(int i = 0; i < numHost; i++){
-	    for(int j = 0; j < hostCore[i]; j++){
-	        for(int k = 0; k < hostCoreTask[i][j].size(); k++){
-				int job = get<0>(hostCoreTask[i][j][k]);
-				int block = get<1>(hostCoreTask[i][j][k]);
-				float startTime = get<2>(hostCoreTask[i][j][k]);
-				float endTime = get<3>(hostCoreTask[i][j][k]);
-				int leftupx = (beforeCore + j) * coreHeight + bound;
-				int leftupy = (startTime/maxTime) * (length - 2 * bound) + bound;
-				int rightdownx = leftupx + coreHeight;
-				int rightdowny = (endTime/maxTime) * (length - 2 * bound) + bound;
-                rectangle(picture, Point(leftupy, leftupx), Point(rightdowny, rightdownx), Scalar(255, 0, 0), 2);
-                putText(picture, "J" + to_string(job) + ",B" + to_string(block) , Point(leftupy, rightdownx), 2, 1, Scalar::all(0));
-			}
-	    }
-	    beforeCore += hostCore[i];
-	}
-    imshow("Drawing Function", picture);
-    waitKey(-1);
-}
+// void ResourceScheduler::visualization(float max) {
+//     int maxTime = max;
+//     int height = 2000, length = 4000;
+//     int bound = 100;
+//     Mat picture(2000, 4000, CV_8UC3, Scalar(255, 255, 255,0.5));
+// //    imshow("Drawing Function", picture);
+// //    waitKey(-1);
+//     int allCore = accumulate(hostCore.begin(), hostCore.end(), 0);
+//     int coreHeight = (height - 2 * bound) / allCore;
+//     int beforeCore = 0;
+// 	for(int i = 0; i < numHost; i++){
+// 	    for(int j = 0; j < hostCore[i]; j++){
+// 	        for(int k = 0; k < hostCoreTask[i][j].size(); k++){
+// 				int job = get<0>(hostCoreTask[i][j][k]);
+// 				int block = get<1>(hostCoreTask[i][j][k]);
+// 				float startTime = get<2>(hostCoreTask[i][j][k]);
+// 				float endTime = get<3>(hostCoreTask[i][j][k]);
+// 				int leftupx = (beforeCore + j) * coreHeight + bound;
+// 				int leftupy = (startTime/maxTime) * (length - 2 * bound) + bound;
+// 				int rightdownx = leftupx + coreHeight;
+// 				int rightdowny = (endTime/maxTime) * (length - 2 * bound) + bound;
+//                 rectangle(picture, Point(leftupy, leftupx), Point(rightdowny, rightdownx), Scalar(255, 0, 0), 2);
+//                 putText(picture, "J" + to_string(job) + ",B" + to_string(block) , Point(leftupy, rightdownx), 2, 1, Scalar::all(0));
+// 			}
+// 	    }
+// 	    beforeCore += hostCore[i];
+// 	}
+//     imshow("Drawing Function", picture);
+//     waitKey(-1);
+// }
 
 double ResourceScheduler::g(int e) {
 	return 1 - alpha * (e - 1);
