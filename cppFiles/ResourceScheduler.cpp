@@ -188,49 +188,188 @@ double ResourceScheduler::g(int e) {
 	return 1 - alpha * (e - 1);
 }
 
-void ResourceScheduler::oneJobScheduler(int job, int hostNum, vector<int> hostID, double startTime) {
-    double speed = Sc[job] * g(hostNum);
+void ResourceScheduler::oneJobScheduler(int job, int coreNum, vector<int> coreID, double startTime) {
+    int down = min(coreNum, jobBlock[job]);
+    double speed = Sc[job] * g(down);
     set<pair<int, int>> allocatedJobCore;
     sort(dataSize[job].begin(), dataSize[job].end(), cmp);
-    vector<double> hostFinishTime;
-    hostFinishTime.resize(hostNum, 0);
+    vector<double> coreFinishTime;
+    coreFinishTime.resize(coreNum, 0);
     int hid = 0;
     for (int j = 0; j < jobBlock[job]; j++) {
-        int unreal_cid = distance(hostFinishTime.begin(), min_element(hostFinishTime.begin(), hostFinishTime.end()));
+        int unreal_cid = distance(coreFinishTime.begin(), min_element(coreFinishTime.begin(), coreFinishTime.end()));
         //int cid = 0;
         //cout  << "cid:" << unreal_cid << endl;
-        int cid = hostID[unreal_cid];
+        int cid = coreID[unreal_cid];
         allocatedJobCore.insert({ hid,cid });
         runLoc[job][j] = make_tuple(hid, cid);
         double dataTime = dataSize[job][j] / speed;
-        double start_Time = startTime + hostFinishTime[unreal_cid];
+        double start_Time = startTime + coreFinishTime[unreal_cid];
         //cout << "stlast:" << startTime;
         double endTime = start_Time + dataTime;
         hostCoreTask[hid][cid].resize(coreNumTask[hid][cid] + 1);
         hostCoreTask[hid][cid][coreNumTask[hid][cid]] = make_tuple(job, j, start_Time, endTime);
         cout << job << " " << j << " " << start_Time << " " << endTime << endl;
         hostCoreFinishTime[hid][cid] = endTime;
-        hostFinishTime[unreal_cid] += dataTime;
+        coreFinishTime[unreal_cid] += dataTime;
         coreNumTask[hid][cid]++;
     }
     jobCore[job] = allocatedJobCore.size();
-    jobFinishTime[job] = startTime + *max_element(hostFinishTime.begin(), hostFinishTime.end());
+    jobFinishTime[job] = startTime + *max_element(coreFinishTime.begin(), coreFinishTime.end());
     cout << job << ":" << jobFinishTime[job] << endl;
 }
 
-bool ResourceScheduler::cmp(double i, double j) { return i > j; }
 
-double ResourceScheduler::oneJobTimeCount(int job, int hostNum) {
-    double speed = Sc[job] * g(hostNum);
+double ResourceScheduler::oneJobTimeCount(int job, int coreNum) {
+    double speed = Sc[job] * g(coreNum);
     set<pair<int, int>> allocatedJobCore;
     sort(dataSize[job].begin(), dataSize[job].end(), cmp);
-    vector<double> hostFinishTime;
-    hostFinishTime.resize(hostNum, 0);
+    vector<double> coreFinishTime;
+    coreFinishTime.resize(coreNum, 0);
     int hid = 0;
     for (int j = 0; j < jobBlock[job]; j++) {
-        int unreal_cid = distance(hostFinishTime.begin(), min_element(hostFinishTime.begin(), hostFinishTime.end()));
+        int unreal_cid = distance(coreFinishTime.begin(), min_element(coreFinishTime.begin(), coreFinishTime.end()));
         double dataTime = dataSize[job][j] / speed;
-        hostFinishTime[unreal_cid] += dataTime;
+        coreFinishTime[unreal_cid] += dataTime;
     }
-    return *max_element(hostFinishTime.begin(), hostFinishTime.end());
+    return *max_element(coreFinishTime.begin(), coreFinishTime.end());
 }
+
+double ResourceScheduler::simpleJobSchduler() {
+    vector<double> jobTime;
+    jobTime.resize(numJob, 0);
+    for(int i = 0; i < numJob; i++){
+        for(int j = 0; j < jobBlock[i]; j++){
+            jobTime[i] += dataSize[i][j] / Sc[i];
+            //cout << jobTime[i] << "\n";
+        }
+    }
+    sort(jobTime.begin(), jobTime.end(), cmp);
+    vector<double> coreFinishTime;
+    coreFinishTime.resize(hostCore[0], 0);
+    for(int i = 0; i < numJob; i++){
+        int index = distance(coreFinishTime.begin(), min_element(coreFinishTime.begin(), coreFinishTime.end()));
+        double st = coreFinishTime[index];
+        coreFinishTime[index] += jobTime[i];
+        double et = coreFinishTime[index];
+        hostCoreTask[0][index].resize(coreNumTask[0][index] + 1);
+        hostCoreTask[0][index][coreNumTask[0][index]] = make_tuple(i, 1, st, et);
+        coreNumTask[0][index]++;
+    }
+    return *max_element(coreFinishTime.begin(), coreFinishTime.end());
+}
+
+void ResourceScheduler::partJobScheduler(int job, int host, int coreNum, vector<int> blockID, vector<int> coreID, double startTime) {
+    int down = min(coreNum, int(blockID.size()));
+    double speed = Sc[job] * g(down);
+    set<pair<int, int>> allocatedJobCore;
+    vector<double> partDataSize;
+    for(int i = 0; i < blockID.size(); i++){
+        partDataSize.push_back(dataSize[job][blockID[i]]);
+    }
+    sort(partDataSize.begin(), partDataSize.end(), cmp);
+    vector<double> coreFinishTime;
+    coreFinishTime.resize(coreNum, 0);
+    int hid = host;
+    for (int j = 0; j < blockID.size(); j++) {
+        int unreal_cid = distance(coreFinishTime.begin(), min_element(coreFinishTime.begin(), coreFinishTime.end()));
+        //int cid = 0;
+        //cout  << "cid:" << unreal_cid << endl;
+        int cid = coreID[unreal_cid];
+        allocatedJobCore.insert({ hid,cid });
+        runLoc[job][j] = make_tuple(hid, cid);
+        double dataTime = partDataSize[j] / speed;
+        double start_Time = startTime + coreFinishTime[unreal_cid];
+        //cout << "stlast:" << startTime;
+        double endTime = start_Time + dataTime;
+        hostCoreTask[hid][cid].resize(coreNumTask[hid][cid] + 1);
+        hostCoreTask[hid][cid][coreNumTask[hid][cid]] = make_tuple(job, blockID[j], start_Time, endTime);
+        cout << job << " " << j << " " << start_Time << " " << endTime << endl;
+        hostCoreFinishTime[hid][cid] = endTime;
+        coreFinishTime[unreal_cid] += dataTime;
+        coreNumTask[hid][cid]++;
+    }
+    jobCore[job] = allocatedJobCore.size();
+    jobFinishTime[job] = startTime + *max_element(coreFinishTime.begin(), coreFinishTime.end());
+    //cout << job << ":" << jobFinishTime[job] << endl;
+}
+
+void ResourceScheduler::oneJobMultiHostScheduler(int job, vector<int> coreNum, vector <vector<int>> blockID, vector <vector<int>> coreID,
+                                                 double startTime) {
+    for(int i = 0; i < numHost; i++){
+        partJobScheduler(job, i, coreNum[i], blockID[i], coreID[i], startTime);
+    }
+}
+
+void ResourceScheduler::transferedJobMultiHostScheduler(int job, int coreNum, vector <vector<int>> coreID, int startTime) {
+    vector<vector<double>> coreFinishTime;
+    vector<vector<double>> coreTransferTime;
+    double speed = Sc[job] * g(coreNum);
+    coreFinishTime.resize(numHost);
+    for(int i = 0; i < numHost; i++){
+        coreFinishTime[i].resize(coreID[i].size(), 0);
+    }
+    coreTransferTime.resize(numHost);
+    for(int i = 0; i < numHost; i++){
+        coreTransferTime[i].resize(coreID[i].size(), 0);
+    }
+    sort(dataSize[job].begin(), dataSize[job].end(), cmp);
+    double localMinTime;
+    int localMinIndex, localMinIndexReal;
+    double globalMinTime;
+    int globalMinHost, globalMinIndex, globalMinIndexReal;
+    for(int i = 0; i < jobBlock[job]; i++){
+        double runtime = dataSize[job][i] / speed;
+        globalMinTime = 999999;
+        int hostLoc = location[job][i];
+        localMinIndex = distance(coreFinishTime[hostLoc].begin(), min_element(coreFinishTime[hostLoc].begin(), coreFinishTime[hostLoc].end()));
+        for(int j = 0; j < numHost; j++){
+            for(int k = 0; k < coreID[j].size(); k++){
+                if(globalMinTime > coreFinishTime[j][k]){
+                    globalMinTime = coreFinishTime[j][k];
+                    globalMinHost = j;
+                    globalMinIndex = k;
+                }
+            }
+        }
+        localMinIndexReal = coreID[hostLoc][localMinIndex];
+        globalMinIndexReal = coreID[globalMinHost][globalMinIndex];
+        if(globalMinHost != hostLoc && globalMinTime < localMinTime) {
+            double deltaTime = abs(localMinTime - globalMinTime);
+            double transTime = dataSize[job][i] / St;
+            // Transfer is a good choice
+            if (deltaTime > transTime) {
+                double start_Time = startTime + coreFinishTime[globalMinHost][globalMinIndex];
+                double endTime = start_Time + runtime + transTime;
+                hostCoreTask[globalMinHost][globalMinIndexReal].resize(coreNumTask[globalMinHost][globalMinIndexReal] + 1);
+                hostCoreTask[globalMinHost][globalMinIndexReal][coreNumTask[globalMinHost][globalMinIndexReal]] = make_tuple(job, i, start_Time, endTime);
+                coreNumTask[globalMinHost][globalMinIndexReal]++;
+                coreFinishTime[globalMinHost][globalMinIndex] += runtime + transTime;
+                coreTransferTime[globalMinHost][globalMinIndex] += transTime;
+            }
+            else{
+                goto badcase;
+            }
+        } else {
+        badcase:
+            double start_Time = startTime + coreFinishTime[hostLoc][localMinIndex];
+            //cout << "stlast:" << startTime;
+            double endTime = start_Time + runtime;
+            hostCoreTask[hostLoc][localMinIndexReal].resize(coreNumTask[globalMinHost][globalMinIndexReal] + 1);
+            hostCoreTask[hostLoc][localMinIndexReal][coreNumTask[hostLoc][localMinIndexReal]] = make_tuple(job, i, start_Time, endTime);
+            coreNumTask[globalMinHost][globalMinIndex]++;
+            coreFinishTime[globalMinHost][globalMinIndex] += runtime;
+        }
+    }
+    int maxTime = 0;
+    for(int i = 0; i < numHost; i++){
+        for(int j = 0; j < coreID.size(); j++){
+            if(coreFinishTime[i][j] > maxTime){
+                maxTime = coreFinishTime[i][j];
+            }
+        }
+    }
+    jobFinishTime[job] = startTime + maxTime;
+}
+
+bool ResourceScheduler::cmp(double i, double j) { return i > j; }

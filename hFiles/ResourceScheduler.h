@@ -39,6 +39,10 @@ public:
 	void visualization(float max); // An optional fuction.
 	double g(int);
 	void oneJobScheduler(int, int, vector<int>, double); // Job, Cores, CoreAddress, StartTime
-	static bool cmp(double, double);
+	void partJobScheduler(int, int, int, vector<int>, vector<int>, double); // Job, Host, Cores, JobBlocks, CoreAddress, StartTime
+	void oneJobMultiHostScheduler(int, vector<int>, vector<vector<int>>, vector<vector<int>>, double); // Job, Core/Host, JobBlocks/Host, CoreAddress/Host, StartTime
 	double oneJobTimeCount(int, int);
+	double simpleJobSchduler();
+	void transferedJobMultiHostScheduler(int, int, vector<vector<int>>, int);
+    static bool cmp(double, double);
 };
