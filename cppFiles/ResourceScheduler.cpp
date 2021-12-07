@@ -79,6 +79,50 @@ void ResourceScheduler::oneHostScheduler() {
     }
 }
 
+void ResourceScheduler::oneHostGreedyScheduler() {
+    if(numHost != 1) {
+        cout << "This function only can use in one host!";
+        return;
+    }
+    double startTime = 0;
+    int restCore = hostCore[0];
+    cout << "hostCore:" << hostCore[0] << endl;
+    double stageMaxTime = 0;
+    for(int i = 0; i < numJob; i++){
+        double minTime = 9999999;
+        int minCore = 0;
+        if(restCore == 0){
+            startTime = stageMaxTime;
+            restCore = hostCore[0];
+            stageMaxTime = 0;
+        }
+        for(int j = 1; j <= hostCore[0]; j++){
+            double time = oneJobTimeCount(i, j);
+            if(time < minTime){
+                minTime = time;
+                minCore = j;
+            }
+            if(minCore > restCore) {
+                startTime = stageMaxTime;
+                restCore = hostCore[0];
+                stageMaxTime = 0;
+            }
+        }
+        cout << minCore << endl;
+        cout << "rest:" << restCore << endl;
+        vector<int> host;
+        for(int j = hostCore[0] - restCore; j < hostCore[0] - restCore + minCore; j++){
+            //cout << j << endl;
+            host.push_back(j);
+        }
+        restCore -= minCore;
+        oneJobScheduler(i, minCore, host, startTime);
+        if(stageMaxTime < jobFinishTime[i]) {
+            stageMaxTime = jobFinishTime[i];
+        }
+    }
+}
+
 void ResourceScheduler::schedule() {
 
 	vector<vector<int>> hostCoreBlock(numHost);

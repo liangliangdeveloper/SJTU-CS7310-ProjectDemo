@@ -20,8 +20,9 @@ int main() {
 	//cout << "OK\n";
     //rs.oneHostScheduler();
 	//rs.outputSolutionFromBlock();
-	float max = rs.simpleJobSchduler();
-	//float max = rs.outputSolutionFromCore();
+	rs.oneHostGreedyScheduler();
+	//float max = rs.simpleJobSchduler();
+	float max = rs.outputSolutionFromCore();
 	cout << "max:" << max;
 	rs.visualization(max);
 

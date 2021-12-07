@@ -33,6 +33,7 @@ public:
 
 	ResourceScheduler(int,int);
     void oneHostScheduler();
+    void oneHostGreedyScheduler();
 	void schedule();
 	void outputSolutionFromBlock();
 	float outputSolutionFromCore();
