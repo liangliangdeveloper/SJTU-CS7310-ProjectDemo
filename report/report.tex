@@ -1,0 +1,282 @@
+\documentclass{llncs}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[ruled,linesnumbered,boxed]{algorithm2e}
+\usepackage{graphicx}
+\usepackage{amsmath}
+%\usepackage{mathtools}
+%\usepackage{color}
+\usepackage{tabularx}
+\usepackage[colorlinks, linkcolor=blue, anchorcolor=blue, citecolor=green]{hyperref}
+%\usepackage{booktabs}
+\usepackage[table]{xcolor}
+%\uespackage{colortbl}
+\usepackage[tight,footnotesize]{subfigure}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{layout}
+\usepackage{appendix}
+%\usepackage{ctex}
+\usepackage{float}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{comment}
+
+\usepackage{indentfirst}
+\setlength{\parindent}{2em}
+
+%\footskip = 10pt
+\pagestyle{fancy}
+\chead{Group Project}
+\lhead{CS7310-Algorithm@SJTU}
+\rhead{Instructor: Xiaofeng Gao}
+\rfoot{}
+\cfoot{Page \thepage \ of \pageref{LastPage}}
+\addtolength{\headheight}{0.5\baselineskip}
+\addtolength{\headwidth}{0\marginparsep}
+\addtolength{\headwidth}{0\marginparwidth}
+
+
+
+\title{Resource Scheduling Problem in Hadoop}
+\subtitle{\color{blue}{Project for Algorithm Design and Analysis} \vspace{-6mm}}
+
+\author{Ling Zhang, 021033910064, ling.zhang@sjtu.edu.cn\\
+        Chengyang Hu, , \\
+        Zhihao Zhang, ,}
+\institute{Department of Computer Science and Engineering, \\ Shanghai Jiao Tong University, Shanghai, China}
+
+\begin{document}
+\bibliographystyle{plain}
+
+%\linespread{0.85}
+
+%==============================================================================
+\maketitle
+\begin{abstract}\vspace{-5mm}
+
+TODO
+
+\textbf{Keywords:} Distributed Computing System, Resource Scheduling, Hadoop
+\end{abstract}
+
+
+\section{A Simplified Version with Single Host}
+\label{sec-problem1}
+TODO
+\subsection{Formalization of the Problem}\label{subsec-form1}
+  According to the formulation and explanation, we give the formalization of the scheduling program with single host.
+  Firstly, we formalize the input of this programing problem as:
+ \begin{equation*}
+  Input = (J,C,\alpha,N,S,size)
+ \end{equation*}
+  Where $J = \{job_0, job_1, \cdots, job_{n-1}\}$, and $C = \{c_0, c_1, \cdots, c_{m-1}\}$; $0 < \alpha < 1$ is the decay factor; $N = \{n_0,n_1,...,n_{n-1}\} $, $n_i$ is the number of blocks of $job_i$; $S= \{s_0,s_1,...,s_{n-1}\} $,$s_i$ is the speed of $job_i$. $size$ is the function which gives the size of each block, $size(b_k^i)$ is the size of the $block_j$ in $job_i$.
+
+  To formalize the whole schedualing problem, we shall first formalize the solution of a single job as a tuple $(A,t,B_j)$.
+  Where $A \subseteq C$ is a set of cores assigned to the job, $|A|$ is the core number $e$ . $t$ is the start time of the job. $\{B_j | c_j \in A\}$ is a partion of the set of blocks $B$.
+ $B_j \subset B$ denotes the subset of data blocks which are assigned to be executed on core $c_j$. Since the subsets of blocks are a partion of $B$, this meets the limitaion $B_{j} \cap B_{j'} = \varnothing$ if $j \neq j'$.
+ Based on the solution of a single job, the solution of this problem is the combination of all jobs:
+ \begin{equation*}
+ Sol = (A,T,\{B_j^i\})
+ \end{equation*}
+ Where $A = \{A_0,A_1,...,A_{n-1}\}, T = \{t_0,t_1,...,t_{n-1}\}$, ${B_j^i}$ is the partition of each $B^i$. According to the solution, we can compute the processing time and finishing time of core $c_j$ for each $job_i$ as
+ \begin{equation*}
+ tp^i_{j} = \frac{\sum_{b^i_{k} \in B^i_{j}}size(b^i_{k})}{s_i \cdot g(e_i)}; tf^i_{j} = t_i + tp^i_{j}.
+ \end{equation*}
+Further the finishing time of each $job_i$ as
+ \begin{equation*}
+ tf(job_i) = \max_{c_j} \; tf^i_{j}, \text{ for } c_j \in A_i.
+ \end{equation*}
+Based on the above definitions, the \textbf{objective function} (already defined in the program description) as:
+  \begin{equation*}
+  \min \max_{job_i} tf(job_i), \ \text{ for } job_i \in J.
+  \end{equation*}
+The \textbf{constraints} can be defined as:
+\begin{equation} \label{constraints-job0}
+\left\{
+\begin{array}{ccl}
+ &\forall &t, \forall i, j \in J, i \neq j \land (t \in [t_i,tf(job_i)) \land (t \in [t_j,tf(job_j))
+ \rightarrow A_i \cap A_j = \varnothing \\
+ &\forall &i, j \in J, (i \neq j \land (A_i \cap A_j \neq \varnothing)) \rightarrow (t_i \leq tf(job_j) \lor (t_j \leq tf(job_i)))
+\end{array}
+\right.
+\end{equation}
+
+\subsection{Design and Implementaion of the Alogrithm}\label{subsec-algo1}
+  To minimize the value of $\max tf(job_i) $, it is clear that we have to guarantee that in each solution $(A_i,t_i,\{B_j^i\})$ is optimal. In other words, the partition  $\{B_j^i\}$ has to minimize $tf(job_i)$ when $A_i$ is given. Actually, this is exactly the  "Minimum Secheduling on Identical Machines" mention at class, which is a NP-hard problem.
+
+  Since the subproblem is NP-hard, the problem here is NP-hard too. As the first step in designing an approximation algorithm for the problem here, we use the "Largest Processing Time Sequential Algorithm" to estimate the minimal processing time of each $job_i$ with $j$ cores. The result can be represented as a table $\hat{tp}[n][m]$, where $\hat{tp}[i][j]$ represents the appropriate processing time for $job_i$ on $j$ cores. This function can be written as:\\
+  \begin{minipage}[t]{0.9\textwidth}
+    \begin{algorithm}[H]
+      \BlankLine
+      \SetKwInOut{Input}{input}
+      \SetKwInOut{Output}{output}
+      \caption{ProcessingTimeEstimation}\label{Alg_1}
+      \Input{$n,m,\alpha,N,S,size$}
+      \Output{$\hat{tp}[n][m]$}
+      \BlankLine
+      \For{$i \leftarrow 0$ \textbf{to} $n-1$}{
+        \For{$j \leftarrow 0$ \textbf{to} $m-1$}{
+           $\hat{tp}[i][j] \leftarrow $  \textbf{Largest Processing Time Sequential Algorithm}$()$\;
+         }
+      }
+    \end{algorithm}
+  \end{minipage}
+\subsubsection{All-Core Algorithm}
+  As the first step, we design a simple greedy algorithm which assigns all cores to each job. In other word, we add a new constraint $ \forall i, A_i = C$.  In this condition, the finishing time can be computed by
+  $$\max_{job_i} tf(job_i) = \sum_{job_i} \max_{c_j}{tp_i^j}.  \ \text{ for } job_i \in J, c_j \in C $$
+  Where the processing time of $job_i$ on all cores can be estimated by $\hat{tp}[i][m]$. The ordering of the jobs is relevent to the finishing time of all jobs. So the algorighm can be written as:\\
+            \begin{minipage}[t]{0.9\textwidth}
+            \begin{algorithm}[H]
+              \BlankLine
+              \SetKwInOut{Input}{input}
+              \SetKwInOut{Output}{output}
+              \caption{All-Core Algorighm}\label{Alg_1}
+              \Input{$n,m,\alpha,N,S,size$}
+              \Output{$\max_{job_i} tf(job_i), \ \text{ for } job_i \in J$}
+              \BlankLine
+              $H \leftarrow empty \ minheap;$ $B \leftarrow empty\  i\_array$\;
+              \For{$j\leftarrow 1$ \textbf{to} $i$}{
+                insert $A[j]$ to $H$\;
+              }
+              \For{$j \leftarrow i+1$ \textbf{to} $n$}{
+                \If{$A[j] > find\_min(H)$}{
+                $H \leftarrow delete\_min(H)$\;
+                insert $A[j]$ to $H$\;
+              }
+            }
+             \For {$j \leftarrow i$ \textbf{downto} $1$}{
+               $B[j] = find\_min (H)$\;
+               $H \leftarrow delete\_min(H)$\;
+             }
+             \end{algorithm}
+             \end{minipage}
+\subsubsection{Search Algorithm with Pruning}
+
+\subsubsection{Single-Core Algorithm}
+
+\subsection{Results and Discussions}\label{subsec-result1}
+
+\section{A Comprehensive Version among Multiple Hosts}
+\label{sec-problem2}
+
+\subsection{Formalization}\label{subsec-form2}
+
+\subsection{Design and Implementation of the Algorithm}\label{subsec-algo2}
+Discussions about the non-separable of the jobs
+\subsubsection{Global All-Core Algorithm}
+
+\subsubsection{Algo2}
+
+\subsection{Results and Discussions}\label{subsec-result2}
+
+\section{Report Requirements}
+
+You need to submit a report for this project, with the following requirements:
+
+\begin{enumerate}
+  \item Your report should include the title, the author names, IDs, email addresses, the page header, the page numbers, your results and discussions for the tasks, figures for your simulations, tables for discussions and comparisons, with the corresponding figure titles and table titles.
+
+  \item Your report should be in English only, with a clear structure, divided by sections, and may contain organizational architecture such as items, definitions, or discussions.
+
+  \item Please include Reference section and Acknowledgment section. You may also include your feelings, suggestions, and comments in the acknowledgment section.
+
+  \item Please define your variables clearly and add them into the symbol table in Appendix.
+
+  \item Please create a folder named ``Project-TeamNumber''， which contains related materials such as report ``Project-TeamNumber.pdf'', latex source ``Project-TeamNumber.tex'', the executable file ``Project-TeamNumber.exe'' (if you have), the data output folder ``Project-Outputs-TeamNumber'', the figure folder ``Project-Figures-TeamNumber'', and other code file folder  ``Project-Codes-TeamNumber''. Then compress the home folder ``Project-TeamNumber'' into a ``Project-TeamNumber.zip'' package. Note that TeamNumber should be two-digit number, e.g., ``Project-06.zip'' conforms to the rule.
+\end{enumerate}
+
+
+\section*{Acknowledgements}
+This problem is motivated from a real-world cloud service corporation. It is formulated by Prof. Xiaofeng Gao (gao-xf@cs.sjtu.edu.cn) from Department of Computer Science and Engineering at Shanghai Jiao Tong University. Yue Ma scribed and modified the project. Yangyang Bao provided the example in Task 1. Zhen Sun provided the example in Task 2. Wanghua Shi provided the test data and source code. Jiale Zhang, Tianyao Shi helped on proofreading and provided many suggestions.
+
+% Here is your acknowledgements. You may also include your feelings, suggestion, and comments in the acknowledgement section.
+
+%
+% ---- Bibliography ----
+%
+% BibTeX users should specify bibliography style 'splncs04'.
+% References will then be sorted and formatted in the correct style.
+%
+%\bibliographystyle{splncs04}
+% \bibliography{refpaper.bib}
+%
+
+%\newpage
+\begin{appendices}
+\section*{Appendix}
+
+\begin{table}[htbp]
+\caption{Symbols and Definitions}
+\begin{center}
+\begin{tabular}{c|c}
+\toprule
+\textbf{Symbols} &\textbf{Definitions}  \\
+\midrule
+$n$ & The number of jobs  \\
+$m$ & The number of cores \\
+$q$ & The number of hosts  \\
+$job_i$, $J$ & $job_i$ is the $i$-th job. The job set is $J=\{job_0, \cdots, job_{n-1}\}$. \\
+$h_l$, $H$ & $h_l$ is the $l$-th  host. The host set is $H=\{h_0, \cdots, h_{q-1}\}$. \\
+$m_l$ & The number of cores on host $h_l$\\
+$c^l_j$, $C_l$ & $c^l_j$ is the $j$-th core on host $h_l$. $C_l$ is the set of cores on host $h_l$.\\
+$C$ & The set of cores. $C=\{c_0,\cdots,c_{m-1}\}$ for single-host. $C=\cup_{l=0}^{q-1} C_l$ for multi-host.\\
+$b^i_k$& The block of $job_i$ whose id is $k$\\
+$B^i_{j}$ & The set of data blocks of $job_i$ allocated to core $c_j$ \\
+$B^i$ & The set of data blocks of $job_i$ \\
+$B^i_{lj}$ & The set of data blocks of $job_i$ allocated to core $c^l_j$ \\
+$\widetilde{B}^i_{lj}$ & The set of data blocks of $job_i$ allocated to core $c^l_j$ but not initially stored on $h_l$\\
+$size(\cdot)$ & The size function of data block\\
+$g(\cdot)$ &  The computing decaying coefficient caused by multi-core effect\\
+$s_i$ & The computing speed of $job_i$ by a single core\\
+$s_t$ & The transmission speed of data \\
+$e_i$ & The number of cores processing $job_i$\\
+$t_i$ & The time to start processing $job_i$\\
+$tp^i_j$, $tf^i_{j}$ & The processing time / finishing time of core $c_j$ for $job_i$\\
+$tp^i_{lj}$, $tf^i_{lj}$ & The processing time / finishing time of core $c^l_j$ for $job_i$\\
+$tf(job_i)$ & The finishing time of $job_i$ \\
+%  & \\
+%  & \\
+%  & \\
+%  & \\
+%  & \\
+%  & \\
+
+\bottomrule
+%\multicolumn{4}{l}{$^{\mathrm{a}}$Sample of a Table footnote.}
+\end{tabular}
+\label{tabSYMBOLS}
+\end{center}
+\end{table}
+
+\end{appendices}
+
+%\begin{comment}
+%\begin{thebibliography}{8}
+%\bibitem{ref_article}
+%Author, F.: Article title. Journal \textbf{2}(5), 99--110 (2016)
+% \bibitem{dean2008mapreduce}
+% Dean J, Ghemawat S. MapReduce: simplified data processing on large clusters[J]. Communications of the ACM, 2008, 51(1): 107-113.
+
+% \bibitem{ref_lncs1}
+% Author, F., Author, S.: Title of a proceedings paper. In: Editor,
+% F., Editor, S. (eds.) CONFERENCE 2016, LNCS, vol. 9999, pp. 1--13.
+% Springer, Heidelberg (2016).
+
+% \bibitem{ref_book1}
+% Author, F., Author, S., Author, T.: Book title. 2nd edn. Publisher,
+% Location (1999)
+
+% \bibitem{ref_proc1}
+% Author, A.-B.: Contribution title. In: 9th International Proceedings
+% on Proceedings, pp. 1--2. Publisher, Location (2010)
+
+% \bibitem{ref_url1}
+% LNCS Homepage, \url{http://www.springer.com/lncs}. Last accessed 4
+% Oct 2017
+%\end{thebibliography}
+%\end{comment}
+
+\end{document}
+
+
