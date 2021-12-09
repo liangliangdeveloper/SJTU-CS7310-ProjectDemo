@@ -41,9 +41,9 @@
 \title{Resource Scheduling Problem in Hadoop}
 \subtitle{\color{blue}{Project for Algorithm Design and Analysis} \vspace{-6mm}}
 
-\author{Ling Zhang, 021033910064, ling.zhang@sjtu.edu.cn\\
-        Chengyang Hu, , \\
-        Zhihao Zhang, ,}
+\author{Chengyang Hu, , \\
+        Zhihao Zhang, , \\
+        Ling Zhang, 021033910064, ling.zhang@sjtu.edu.cn}
 \institute{Department of Computer Science and Engineering, \\ Shanghai Jiao Tong University, Shanghai, China}
 
 \begin{document}
@@ -103,9 +103,9 @@ The \textbf{constraints} can be defined as:
 \end{equation}
 
 \subsection{Design and Implementaion of the Alogrithm}\label{subsec-algo1}
-  To minimize the value of $\max tf(job_i) $, it is clear that we have to guarantee that in each solution $(A_i,t_i,\{B_j^i\})$ is optimal. In other words, the partition  $\{B_j^i\}$ has to minimize $tf(job_i)$ when $A_i$ is given. Actually, this is exactly the  "Minimum Secheduling on Identical Machines" mention at class, which is a NP-hard problem.
+  To minimize the value of $\max tf(job_i) $, it is clear that we have to guarantee that in each solution $(A_i,t_i,\{B_j^i\})$ is optimal. In other words, the partition  $\{B_j^i\}$ has to minimize $tf(job_i)$ when $A_i$ is given. Actually, this is exactly the  "Minimum Secheduling on Identical Machines" problem mention at class, which is a NP-hard problem.
 
-  Since the subproblem is NP-hard, the problem here is NP-hard too. As the first step in designing an approximation algorithm for the problem here, we use the "Largest Processing Time Sequential Algorithm" to estimate the minimal processing time of each $job_i$ with $j$ cores. The result can be represented as a table $\hat{tp}[n][m]$, where $\hat{tp}[i][j]$ represents the appropriate processing time for $job_i$ on $j$ cores. This function can be written as:\\
+  Since the subproblem is NP-hard, the problem here is NP-hard too. As the first step in designing an approximation algorithm for the problem here, we use the \textbf{Largest Processing Time Sequential Algorithm (LPTS Algorithm)} to estimate the minimal processing time of each $job_i$ with $j$ cores. The result can be represented as a table $\hat{tp}[n][m]$, where $\hat{tp}[i][j]$ represents the appropriate processing time for $job_i$ on $j$ cores. This function can be written as:\\
   \begin{minipage}[t]{0.9\textwidth}
     \begin{algorithm}[H]
       \BlankLine
@@ -117,7 +117,7 @@ The \textbf{constraints} can be defined as:
       \BlankLine
       \For{$i \leftarrow 0$ \textbf{to} $n-1$}{
         \For{$j \leftarrow 0$ \textbf{to} $m-1$}{
-           $\hat{tp}[i][j] \leftarrow $  \textbf{Largest Processing Time Sequential Algorithm}$()$\;
+           $\hat{tp}[i][j] \leftarrow $  \textbf{LPTS}$(job_i,j)$\;
          }
       }
     \end{algorithm}
@@ -133,26 +133,57 @@ The \textbf{constraints} can be defined as:
               \SetKwInOut{Output}{output}
               \caption{All-Core Algorighm}\label{Alg_1}
               \Input{$n,m,\alpha,N,S,size$}
-              \Output{$\max_{job_i} tf(job_i), \ \text{ for } job_i \in J$}
+              \Output{$T = \max_{job_i} tf(job_i), \ \text{ for } job_i \in J$}
               \BlankLine
-              $H \leftarrow empty \ minheap;$ $B \leftarrow empty\  i\_array$\;
-              \For{$j\leftarrow 1$ \textbf{to} $i$}{
-                insert $A[j]$ to $H$\;
+              $T \leftarrow 0$\;
+              \For{$i\leftarrow 0$ \textbf{to} $i-1$}{
+                $T \leftarrow T + $ \textbf{LPTS}$(job_i,m)$\;
               }
-              \For{$j \leftarrow i+1$ \textbf{to} $n$}{
-                \If{$A[j] > find\_min(H)$}{
-                $H \leftarrow delete\_min(H)$\;
-                insert $A[j]$ to $H$\;
-              }
-            }
-             \For {$j \leftarrow i$ \textbf{downto} $1$}{
-               $B[j] = find\_min (H)$\;
-               $H \leftarrow delete\_min(H)$\;
-             }
              \end{algorithm}
-             \end{minipage}
-\subsubsection{Search Algorithm with Pruning}
+             \end{minipage}\\
 
+TODO: TIME COMPLEXITY.
+%The time complexity of LPTS Algorithm for $job_i$ is $O(n_i\log n_i + n_i )$
+\subsubsection{Search Algorithm with Pruning}
+  Assume the jobs are ordered, we define a searching strategy as the function $Search(i,c,st)$ representing the complete time of the jobs $job_i,job_{i+1},...,job_{n-1}$ started at time $st$ with $nc$ cores avaiable. Similarly here we care more about the number of cores assigned instead of the subset itself. Then the problem can be solved by seaerching the solution space to minimize $Search(0,m,0)$. As the base case we have:
+  \begin{equation*}
+  Search(i,nc,st) = 0 , i = n-1.
+  \end{equation*}
+  When $i<n-1$ and $cores \neq \varnothing$, we can assign any subset of $cores$ to processing $job_i$. So the finishing time of $\hat{tf}_i = st + \hat{tp}_j^i$.Then the processing time is the bigger one of $\hat{tp}[i][j]$ and $Search(i+1,nc-j,st)$. So we have:
+    \begin{equation*}
+  Search(i,nc,st) = \min_{1\leq j \leq nc} \{\max \{Search(i+1,nc-j,st),\hat{tp}[i][j]\}\}.
+    \end{equation*}
+  However, we can also choose to delay the execution of $job_i$ to wait for the release of more cores. This can be described by
+  $$
+  Search(i,nc,st) = Search (i,nc+1,st') + (st' - st)
+  $$
+  Here we add the delay time according to the different definition of complete time of jobs with the finishing time. Here we only wait for the completion of one job because we can still choose to wait at time $st'$. Here $st'$ is the first job which completed later than $st$. formally
+  $$
+  st' = \arg \min \{\hat{tf}_k\big{|} 0\leq k \leq i-1 \land \hat{tf}_k > st\}
+  $$
+  Specailly, when $i<n-1$, if $cores = \varnothing$, then we have to wait for the release of next core.
+
+  It is easy to realize that the previous search method can not be formulated as a dynamic programming method. The time complexity is at least $O(n^m)$. So we further defines several pruning methods:
+  \begin{enumerate}
+    \item We keep the minimal solution $T$, hence we can abolish any search function given $st > T$.
+    \item When we enumerate the number of cores $1\leq j \leq nc$ assigned for $job_i$, we start from $nc$ to $1$, if $\hat{tp}[i][j] > Searchh(i+1,j,st)$ then we can break the loop.
+    \item Monte Carlo Pruning:\\
+
+   In summary of the search strategy and pruning strategy described above, the algorithm can be defined as:
+
+   \begin{minipage}[t]{0.9\textwidth}
+     \begin{algorithm}[H]
+       \BlankLine
+       \SetKwInOut{Input}{input}
+       \SetKwInOut{Output}{output}
+       \caption{Searching Algorighm}\label{Alg_2}
+       \Input{$n,m,\alpha,N,S,size$}
+       \Output{$\max_{job_i} tf(job_i), \ \text{ for } job_i \in J$}
+       \BlankLine
+     \end{algorithm}
+   \end{minipage}\\
+
+  \end{enumerate}
 \subsubsection{Single-Core Algorithm}
 
 \subsection{Results and Discussions}\label{subsec-result1}
@@ -183,7 +214,7 @@ You need to submit a report for this project, with the following requirements:
 
   \item Please define your variables clearly and add them into the symbol table in Appendix.
 
-  \item Please create a folder named ``Project-TeamNumber''， which contains related materials such as report ``Project-TeamNumber.pdf'', latex source ``Project-TeamNumber.tex'', the executable file ``Project-TeamNumber.exe'' (if you have), the data output folder ``Project-Outputs-TeamNumber'', the figure folder ``Project-Figures-TeamNumber'', and other code file folder  ``Project-Codes-TeamNumber''. Then compress the home folder ``Project-TeamNumber'' into a ``Project-TeamNumber.zip'' package. Note that TeamNumber should be two-digit number, e.g., ``Project-06.zip'' conforms to the rule.
+%  \item Please create a folder named ``Project-TeamNumber''， which contains related materials such as report ``Project-TeamNumber.pdf'', latex source ``Project-TeamNumber.tex'', the executable file ``Project-TeamNumber.exe'' (if you have), the data output folder ``Project-Outputs-TeamNumber'', the figure folder ``Project-Figures-TeamNumber'', and other code file folder  ``Project-Codes-TeamNumber''. Then compress the home folder ``Project-TeamNumber'' into a ``Project-TeamNumber.zip'' package. Note that TeamNumber should be two-digit number, e.g., ``Project-06.zip'' conforms to the rule.
 \end{enumerate}
 
 
