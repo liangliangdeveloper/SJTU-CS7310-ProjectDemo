@@ -47,51 +47,47 @@
 \institute{Department of Computer Science and Engineering, \\ Shanghai Jiao Tong University, Shanghai, China}
 
 \begin{document}
-\bibliographystyle{plain}
 
 %\linespread{0.85}
 
 %==============================================================================
 \maketitle
 \begin{abstract}\vspace{-5mm}
-
 TODO
-
 \textbf{Keywords:} Distributed Computing System, Resource Scheduling, Hadoop
 \end{abstract}
 
 
 \section{A Simplified Version with Single Host}
 \label{sec-problem1}
-TODO
 \subsection{Formalization of the Problem}\label{subsec-form1}
   According to the formulation and explanation, we give the formalization of the scheduling program with single host.
-  Firstly, we formalize the input of this programing problem as:
+  Firstly, we formalize the input of this programing problem as:\\
  \begin{equation*}
   Input = (J,C,\alpha,N,S,size)
  \end{equation*}
-  Where $J = \{job_0, job_1, \cdots, job_{n-1}\}$, and $C = \{c_0, c_1, \cdots, c_{m-1}\}$; $0 < \alpha < 1$ is the decay factor; $N = \{n_0,n_1,...,n_{n-1}\} $, $n_i$ is the number of blocks of $job_i$; $S= \{s_0,s_1,...,s_{n-1}\} $,$s_i$ is the speed of $job_i$. $size$ is the function which gives the size of each block, $size(b_k^i)$ is the size of the $block_j$ in $job_i$.
+  Where $J = \{job_0, job_1, \cdots, job_{n-1}\}$, and $C = \{c_0, c_1, \cdots, c_{m-1}\}$; $0 < \alpha < 1$ is the decay factor; $N = \{n_0,n_1,\dots,n_{n-1}\} $, $n_i$ is the number of blocks of $job_i$; $S= \{s_0,s_1,\dots,s_{n-1}\} $,$s_i$ is the speed of $job_i$. $size$ is the function which gives the size of each block, $size(b_k^i)$ is the size of the $block_j$ in $job_i$.
 
   To formalize the whole schedualing problem, we shall first formalize the solution of a single job as a tuple $(A,t,B_j)$.
   Where $A \subseteq C$ is a set of cores assigned to the job, $|A|$ is the core number $e$ . $t$ is the start time of the job. $\{B_j | c_j \in A\}$ is a partion of the set of blocks $B$.
- $B_j \subset B$ denotes the subset of data blocks which are assigned to be executed on core $c_j$. Since the subsets of blocks are a partion of $B$, this meets the limitaion $B_{j} \cap B_{j'} = \varnothing$ if $j \neq j'$.
- Based on the solution of a single job, the solution of this problem is the combination of all jobs:
+ $B_j \subseteq B$ denotes the subset of data blocks which are assigned to be executed on core $c_j$. Since the subsets of blocks are a partion of $B$, this meets the limitaion $B_{j} \cap B_{j'} = \varnothing$ if $j \neq j'$.
+ Based on the solution of a single job, the solution of this problem is the combination of all jobs:\\
  \begin{equation*}
  Sol = (A,T,\{B_j^i\})
  \end{equation*}
- Where $A = \{A_0,A_1,...,A_{n-1}\}, T = \{t_0,t_1,...,t_{n-1}\}$, ${B_j^i}$ is the partition of each $B^i$. According to the solution, we can compute the processing time and finishing time of core $c_j$ for each $job_i$ as
- \begin{equation*}
+ Where $A = \{A_0,A_1,\dots,A_{n-1}\}, T = \{t_0,t_1,\dots,t_{n-1}\}$, $\{B_j^i\}$ is the partition of each $B^i$. According to the solution, we can compute the processing time and finishing time of core $c_j$ for each $job_i$ as\\
+ \begin{equation}
  tp^i_{j} = \frac{\sum_{b^i_{k} \in B^i_{j}}size(b^i_{k})}{s_i \cdot g(e_i)}; tf^i_{j} = t_i + tp^i_{j}.
- \end{equation*}
-Further the finishing time of each $job_i$ as
- \begin{equation*}
- tf(job_i) = \max_{c_j} \; tf^i_{j}, \text{ for } c_j \in A_i.
- \end{equation*}
-Based on the above definitions, the \textbf{objective function} (already defined in the program description) as:
+ \end{equation}
+Further the processing time and finishing time of each $job_i$ as\\
+ \begin{equation}
+ tp^i = \max_{c_j} \; tp_j^i; tf(job_i) = \max_{c_j} \; tf^i_{j} = t_i + tp^i, \text{ for } c_j \in A_i.
+ \end{equation}
+Based on the above definitions, the \textbf{objective function} (already defined in the program description) as:\\
   \begin{equation*}
   \min \max_{job_i} tf(job_i), \ \text{ for } job_i \in J.
   \end{equation*}
-The \textbf{constraints} can be defined as:
+The \textbf{constraints} can be defined as:\\
 \begin{equation} \label{constraints-job0}
 \left\{
 \begin{array}{ccl}
@@ -142,34 +138,49 @@ The \textbf{constraints} can be defined as:
              \end{algorithm}
              \end{minipage}\\
 
-TODO: TIME COMPLEXITY.
-%The time complexity of LPTS Algorithm for $job_i$ is $O(n_i\log n_i + n_i )$
+The time complexity of LPTS Algorithm for $job_i$ is $O(n_i\log n_i)$, we define $b = \max_i{n_i}$ as the max number of date blocks in jobs. Then the time complexity of All-Core Algorithm without sorting of the jobs is $O(nb\log b)$.
 \subsubsection{Search Algorithm with Pruning}
-  Assume the jobs are ordered, we define a searching strategy as the function $Search(i,c,st)$ representing the complete time of the jobs $job_i,job_{i+1},...,job_{n-1}$ started at time $st$ with $nc$ cores avaiable. Similarly here we care more about the number of cores assigned instead of the subset itself. Then the problem can be solved by seaerching the solution space to minimize $Search(0,m,0)$. As the base case we have:
-  \begin{equation*}
+  Assume the jobs are ordered, we define a searching strategy as the function $Search(i,c,st)$ representing the complete time of the jobs $job_i,job_{i+1},\dots,job_{n-1}$ started at time $st$ with $nc$ cores avaiable. Similarly here we care more about the number of cores assigned instead of the subset itself. Then the problem can be solved by seaerching the solution space to minimize $Search(0,m,0)$. As the base case we have:
+  \begin{equation}
   Search(i,nc,st) = 0 , i = n-1.
-  \end{equation*}
+  \end{equation}
   When $i<n-1$ and $cores \neq \varnothing$, we can assign any subset of $cores$ to processing $job_i$. So the finishing time of $\hat{tf}_i = st + \hat{tp}_j^i$.Then the processing time is the bigger one of $\hat{tp}[i][j]$ and $Search(i+1,nc-j,st)$. So we have:
-    \begin{equation*}
+    \begin{equation}
   Search(i,nc,st) = \min_{1\leq j \leq nc} \{\max \{Search(i+1,nc-j,st),\hat{tp}[i][j]\}\}.
-    \end{equation*}
+    \end{equation}
   However, we can also choose to delay the execution of $job_i$ to wait for the release of more cores. This can be described by
-  $$
+  \begin{equation}
   Search(i,nc,st) = Search (i,nc+1,st') + (st' - st)
-  $$
+\end{equation}
   Here we add the delay time according to the different definition of complete time of jobs with the finishing time. Here we only wait for the completion of one job because we can still choose to wait at time $st'$. Here $st'$ is the first job which completed later than $st$. formally
-  $$
+  \begin{equation}
   st' = \arg \min \{\hat{tf}_k\big{|} 0\leq k \leq i-1 \land \hat{tf}_k > st\}
-  $$
+  \end{equation}
   Specailly, when $i<n-1$, if $cores = \varnothing$, then we have to wait for the release of next core.
 
   It is easy to realize that the previous search method can not be formulated as a dynamic programming method. The time complexity is at least $O(n^m)$. So we further defines several pruning methods:
   \begin{enumerate}
     \item We keep the minimal solution $T$, hence we can abolish any search function given $st > T$.
-    \item When we enumerate the number of cores $1\leq j \leq nc$ assigned for $job_i$, we start from $nc$ to $1$, if $\hat{tp}[i][j] > Searchh(i+1,j,st)$ then we can break the loop.
-    \item Monte Carlo Pruning:\\
-
-   In summary of the search strategy and pruning strategy described above, the algorithm can be defined as:
+    \item When we enumerate the number of cores $1\leq j \leq nc$ assigned for $job_i$ in (5), we start from $nc$ to $1$, if $\hat{tp}[i][j] > Searchh(i+1,j,st)$ then we can break the loop.
+    \item Monte Carlo Pruning: We introduce two global super parameters $i_1$ and $i_2$ to implement a 2-stage pruning strategy. The previous formula (5) is replaced by
+      \begin{equation}
+  Search(i,nc,st) = \min_{nc'(i)\leq j \leq nc} \{\max \{Search(i+1,nc-j,st),\hat{tp}[i][j]\}\}.
+    \end{equation}
+    Where $nc'(i)$ is defined as
+    \begin{equation}
+      nc'(i) =
+      \left\{
+        \begin{array}{ccl}
+          &1              & ,i < i_1 \\
+          &nc - 1         & ,i_1 < i < i_2\\
+          &nc             & ,i_2 \leq i
+        \end{array}
+      \right.
+    \end{equation}
+    More specificallly, when $i<i_1$ the function  $Search(i,nc,st)$ will search the whole space for optimal solution. When $i_1 < i < i_2$ the function will only search the subspace of assigning $nc$ or $nc-1$  cores to $job_i$. When $i_2 \leq i$ the function stops branching and become the same greedy strategy as the all-core greedy algorithm and just assign all avaiable cores remaining jobs.
+    When we set $i_1 = i_2 = n$, then (8) is the same as (5) which searchs the whole space for global optimal solution. When we set $i_1 = i_2 = 0$, then the strategy is the all-core algorithm. By setting the parameters $i_1$ and $i_2$ we can do trade-off between this two strategies. Furthermore, here the definition of function $nc_i$ prefers to assign as more as possible available cores to each job. We can also modify the function to implement other pruning strategies.
+  \end{enumerate}
+    In summary of the search strategy and pruning strategy described above, the algorithm can be defined as:
 
    \begin{minipage}[t]{0.9\textwidth}
      \begin{algorithm}[H]
@@ -183,54 +194,93 @@ TODO: TIME COMPLEXITY.
      \end{algorithm}
    \end{minipage}\\
 
+\subsubsection{Single-Core Algorithm}{}
+  Besides the design and implemention the above algorithms, we also investigates other work on Hadoop and MapReduce\cite{maleki2019mapreduce} for inspiration. Maleki\cite{maleki2020tmar} systematically summaries the structure of Hadoop and MapReduce architecture and the three level of job schedualing: (i) User-level (ii) Job-level, and (iii) Task-level, where the tasks schedualing includes Maps schedualing and Reduce schedualing. The schedualing algorithms can be divided into online and offline (static) algorighm. Roughly speaking, the problem here is a kind of static schedualing of jobs and tasks(datablocks) to minimize the makespan of a batch of tasks. However, there are several difference between this problem and the common formulation of MapReduce-related schedualing problem.
+  \begin{enumerate}
+    \item In Hadoop and MapReduce environment, a job is divided to 2 stage, i.e. Map and Reduce. The Reduce part cannot begin until Map part is finished. This correspond to the famous "Two-Stage Production Sehedule" model proposed and solved by Johnson\cite{johnson1954optimal}. However this problem is not related to such two-stage problem, the datablocks of a job is not divided into two categories.
+    \item Since there are only one type of tasks(datablocks) of each job. We try to solve the problem from the perspective of Map schedualing. However, in most research of static MapReduce scheduling\cite{verma2013orchestrating,maleki2020tmar,zhu2014minimizing} the Map part of a job can be arbitrarily pertitioned and executed perfectly in parallel on multiple cores. However the datablocks here is fixed and the parallel processing of them will decay because of interaction with each other.
   \end{enumerate}
-\subsubsection{Single-Core Algorithm}
+  Generally, We find that these studies on Map scheduling are based on the assumption that Map tasks can be fully parallelized, and from this perspective the problem has the following characteristic.\\
+  \textbf{Observation} We define the amount of computing resource occupied by $job_i$ as $r[i][j] = j \times \hat{tp}[i][j]$. As the result of speed delay in (1), we have
+  \begin{equation}
+    \forall i, \forall j \neq 1, r[i][1] < r[i][j]
+  \end{equation}
+  Because when $j=1$, we are executing the $job_i$ on a single host. There is no idle on the single host. At the same time, the processing speed of the job is not delayed. So even the datablocks can be perfectly divided into $j$ part of the same workload, we still have $r[i][j] = r[i][1] \times \frac{1}{g(j)} > r[i][1]$.\\
+  Based on this observation. we define another simple greedy strategy to execute each job on a single core. The datablocks of each jobs can be viewed as a single task and the processing speed and processing time are also fixed. After we represent the size of each job by its processing time, the whole problem can be viewed as a "Minimum Secheduling on Identical Machines" problem, the pesudo instruction version of this algorithm is:\\
+     \begin{minipage}[t]{0.9\textwidth}
+     \begin{algorithm}[H]
+       \BlankLine
+       \SetKwInOut{Input}{input}
+       \SetKwInOut{Output}{output}
+       \caption{Single-Core Algorighm}\label{Alg_2}
+       \Input{$n,m,\alpha,N,S,size$}
+       \Output{$T = \max_{job_i} tf(job_i), \ \text{ for } job_i \in J$}
+       \BlankLine
+       \For{$i \leftarrow 0$ \textbf{to} $n-1$}{
+         $Time[i] \leftarrow (\sum_{B^i}{size(B^i_j)})/s_i$
+       }
+       $T \leftarrow $\textbf{LPTS}$(Time,m)$
+     \end{algorithm}
+   \end{minipage}
+    \hspace{5mm}
 
+   The time complexity of this algorithm is $O(nb + nlogn)$.
 \subsection{Results and Discussions}\label{subsec-result1}
-
+TODO
 \section{A Comprehensive Version among Multiple Hosts}
 \label{sec-problem2}
-
 \subsection{Formalization}\label{subsec-form2}
+Based on the formalizaion of Task 1, Here the cores are divided into $q$ hosts $H = \{h_0,h_1,\dots,h_{q-1}\}$. Let $C_l$ be the set of cores on host $h_l$,$C_l = \{c_0^l,c_1^l,\dots,c^l_{m_l-1}\}$. We omit other formulations of $st, \widetilde{B}^i_{lj},tp^i_{lj}, tf^i_{lj}$ and $tf(job_i)$ which are the same as the specifications in project description.
 
+Here the solution space is similar to Task 1. For a singel job the solution is $A,t,\{B_{lj}\}$. Where $A \subseteq \cup \{C_l\}$ is the set of cored assigned to job the job, $|A| = e$. $t$ is the start time of the job. $\{B_{lj}|c_{lj} \in A\}$ is a partition of data blocks B. $B_{lj} \subseteq B$ denotoes the set of data blocks which are assigned to core $c_{lj}$. Then the solution of Task 2 can be defined as:\\
+\begin{equation*}
+  Sol = (A,T,{B^i_{lj}})
+\end{equation*}
+Where $A = \{A_0,A_1,\dots,A_{n-1}\}$,$T=\{t_0,t_1,\dots,t_{n-1}\}$,$\{B^i_{lj}\}$ is the set of partitions of each $B^i$. The obejective function and constraints are in the same form as those for Task 1, with new difinition of $tf(job_i)$ and $A_i$:\\
+  \begin{equation*}
+  \min \max_{job_i} tf(job_i), \ \text{ for } job_i \in J.
+  \end{equation*}
+\begin{equation} \label{constraints-job0}
+\left\{
+\begin{array}{ccl}
+ &\forall &t, \forall i, j \in J, i \neq j \land (t \in [t_i,tf(job_i)) \land (t \in [t_j,tf(job_j))
+ \rightarrow A_i \cap A_j = \varnothing \\
+ &\forall &i, j \in J, (i \neq j \land (A_i \cap A_j \neq \varnothing)) \rightarrow (t_i \leq tf(job_j) \lor (t_j \leq tf(job_i)))
+\end{array}
+\right.
+\end{equation}
 \subsection{Design and Implementation of the Algorithm}\label{subsec-algo2}
-Discussions about the non-separable of the jobs
+   Our main idea of solving the schedualing problem on multi hosts is to translate it into the problem in Task 1. The first attempt is to divide a job into several subjob and execute them on seperate hosts. However we realize that the processing time of a job is decided by the total number of the cores assigned to it on all host, which disables such divide-and-conquer method. As the dimension of solution space increments, the complexity of searching method also becomes unacceptable. As a result, we only gives two simple feasible solution of the problem based on the algorithm introduced in \ref{subsec-algo1}.
 \subsubsection{Global All-Core Algorithm}
-
+TODO
 \subsubsection{Algo2}
-
+TODO
 \subsection{Results and Discussions}\label{subsec-result2}
+TODO
 
-\section{Report Requirements}
+%\section{Report Requirements}
 
-You need to submit a report for this project, with the following requirements:
+%You need to submit a report for this project, with the following requirements:
 
-\begin{enumerate}
-  \item Your report should include the title, the author names, IDs, email addresses, the page header, the page numbers, your results and discussions for the tasks, figures for your simulations, tables for discussions and comparisons, with the corresponding figure titles and table titles.
+%\begin{enumerate}
+%  \item Your report should include the title, the author names, IDs, email addresses, the page header, the page numbers, your results and discussions for the tasks, figures for your simulations, tables for discussions and comparisons, with the corresponding figure titles and table titles.
 
-  \item Your report should be in English only, with a clear structure, divided by sections, and may contain organizational architecture such as items, definitions, or discussions.
+%  \item Your report should be in English only, with a clear structure, divided by sections, and may contain organizational architecture such as items, definitions, or discussions.
 
-  \item Please include Reference section and Acknowledgment section. You may also include your feelings, suggestions, and comments in the acknowledgment section.
+%  \item Please include Reference section and Acknowledgment section. You may also include your feelings, suggestions, and comments in the acknowledgment section.
 
-  \item Please define your variables clearly and add them into the symbol table in Appendix.
+%  \item Please define your variables clearly and add them into the symbol table in Appendix.
 
 %  \item Please create a folder named ``Project-TeamNumber''， which contains related materials such as report ``Project-TeamNumber.pdf'', latex source ``Project-TeamNumber.tex'', the executable file ``Project-TeamNumber.exe'' (if you have), the data output folder ``Project-Outputs-TeamNumber'', the figure folder ``Project-Figures-TeamNumber'', and other code file folder  ``Project-Codes-TeamNumber''. Then compress the home folder ``Project-TeamNumber'' into a ``Project-TeamNumber.zip'' package. Note that TeamNumber should be two-digit number, e.g., ``Project-06.zip'' conforms to the rule.
-\end{enumerate}
-
+%\end{enumerate}
 
 \section*{Acknowledgements}
-This problem is motivated from a real-world cloud service corporation. It is formulated by Prof. Xiaofeng Gao (gao-xf@cs.sjtu.edu.cn) from Department of Computer Science and Engineering at Shanghai Jiao Tong University. Yue Ma scribed and modified the project. Yangyang Bao provided the example in Task 1. Zhen Sun provided the example in Task 2. Wanghua Shi provided the test data and source code. Jiale Zhang, Tianyao Shi helped on proofreading and provided many suggestions.
+%The problem is defined related and different to common versions of MapReduce-related job schedualing problem and closely related to the algorighm ideas and specific algorighm mentioned on the class. So it is a good project to make use of the thing we have learned. In our point of view, the overall workload is relatively high, especially the Task 2 which seems too difficult.
 
-% Here is your acknowledgements. You may also include your feelings, suggestion, and comments in the acknowledgement section.
-
-%
-% ---- Bibliography ----
-%
 % BibTeX users should specify bibliography style 'splncs04'.
-% References will then be sorted and formatted in the correct style.
-%
-%\bibliographystyle{splncs04}
-% \bibliography{refpaper.bib}
+% I cannot use the splncs04
+\bibliographystyle{plain}
+ \bibliography{refpaper.bib}
 %
 
 %\newpage
@@ -266,10 +316,11 @@ $t_i$ & The time to start processing $job_i$\\
 $tp^i_j$, $tf^i_{j}$ & The processing time / finishing time of core $c_j$ for $job_i$\\
 $tp^i_{lj}$, $tf^i_{lj}$ & The processing time / finishing time of core $c^l_j$ for $job_i$\\
 $tf(job_i)$ & The finishing time of $job_i$ \\
-%  & \\
-%  & \\
-%  & \\
-%  & \\
+
+$tp^i$  & The processing time of $job_i$ \\
+$b$  & The max number of data blocks in all jobs \\
+$A_i$  & The subset of cores assigned for processing $job_i$ \\
+$\hat{tp}[i][j]$  & The estimation of processing time of $job_i$ on $j$ cores via LPTS algorighm \\
 %  & \\
 %  & \\
 
@@ -282,31 +333,31 @@ $tf(job_i)$ & The finishing time of $job_i$ \\
 
 \end{appendices}
 
-%\begin{comment}
-%\begin{thebibliography}{8}
-%\bibitem{ref_article}
-%Author, F.: Article title. Journal \textbf{2}(5), 99--110 (2016)
-% \bibitem{dean2008mapreduce}
-% Dean J, Ghemawat S. MapReduce: simplified data processing on large clusters[J]. Communications of the ACM, 2008, 51(1): 107-113.
+\begin{comment}
+\begin{thebibliography}{8}
+\bibitem{ref_article}
+Author, F.: Article title. Journal \textbf{2}(5), 99--110 (2016)
+ \bibitem{dean2008mapreduce}
+ Dean J, Ghemawat S. MapReduce: simplified data processing on large clusters[J]. Communications of the ACM, 2008, 51(1): 107-113.
 
-% \bibitem{ref_lncs1}
-% Author, F., Author, S.: Title of a proceedings paper. In: Editor,
-% F., Editor, S. (eds.) CONFERENCE 2016, LNCS, vol. 9999, pp. 1--13.
-% Springer, Heidelberg (2016).
+ \bibitem{ref_lncs1}
+ Author, F., Author, S.: Title of a proceedings paper. In: Editor,
+ F., Editor, S. (eds.) CONFERENCE 2016, LNCS, vol. 9999, pp. 1--13.
+ Springer, Heidelberg (2016).
 
-% \bibitem{ref_book1}
-% Author, F., Author, S., Author, T.: Book title. 2nd edn. Publisher,
-% Location (1999)
+ \bibitem{ref_book1}
+ Author, F., Author, S., Author, T.: Book title. 2nd edn. Publisher,
+ Location (1999)
 
-% \bibitem{ref_proc1}
-% Author, A.-B.: Contribution title. In: 9th International Proceedings
-% on Proceedings, pp. 1--2. Publisher, Location (2010)
+ \bibitem{ref_proc1}
+ Author, A.-B.: Contribution title. In: 9th International Proceedings
+ on Proceedings, pp. 1--2. Publisher, Location (2010)
 
-% \bibitem{ref_url1}
-% LNCS Homepage, \url{http://www.springer.com/lncs}. Last accessed 4
-% Oct 2017
-%\end{thebibliography}
-%\end{comment}
+ \bibitem{ref_url1}
+ LNCS Homepage, \url{http://www.springer.com/lncs}. Last accessed 4
+ Oct 2017
+\end{thebibliography}
+\end{comment}
 
 \end{document}
 
